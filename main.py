@@ -1,20 +1,28 @@
 import NBTParser
 import ChunkParser
 import Plotter
-import _GlobalReferences
+import Profiler
 
-import itertools
+from itertools import product as iter_product
 
-region_data = NBTParser.read_region_file("TestFiles/r.0.0.mca")
-for x, z in itertools.product(range(0, 1), range(0, 1)):
-    chunk_data = NBTParser.extract_chunk_data(region_data, x, z)
-    extracted_NBT_data = NBTParser.generate_NBT_Data(chunk_data)
-    ChunkParser.parse_chunk(
-        extracted_NBT_data,
-        extracted_NBT_data["xPos"],
-        extracted_NBT_data["zPos"],
-        _GlobalReferences.point_data,
-        _GlobalReferences.face_data,
-        _GlobalReferences.block_data,
-    )
-Plotter.plot(_GlobalReferences.point_data, _GlobalReferences.face_data)
+
+def profiler_func(**kwargs):
+    for x, z in iter_product(range(0, 4), range(0, 4)):
+        chunk_data = NBTParser.Chunk.from_region_data(kwargs["region_data"], x, z)
+        ChunkParser.parse_chunk(
+            chunk_data.data,
+            point_data,
+            face_data,
+            block_data,
+        )
+
+
+block_data = []
+point_data = []
+face_data = []
+
+region_data = NBTParser.Region.from_region_file(
+    "Data Files/MCA Testing Files/r.-2.2-26.1.1.mca", True
+)
+Profiler.run_profiler(profiler_func, region_data=region_data)
+Plotter.plot(point_data, face_data)
