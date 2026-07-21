@@ -1,20 +1,19 @@
-__all__ = ["plot", "gen_section_mesh"]
+__all__ = ["plot", "generate_subchunk_mesh"]
 
 import pyvista as pv
 import numpy as np
-from typing import Sequence
 from itertools import product as iter_product
 
 import _GlobalReferences
-import _TriangleCulling
 
 
-def plot(pt: Sequence[float], fc: Sequence[int], unit_test_mode: bool = False) -> None:
+def plot(
+    mesh_data: list[pv.PolyData], wireframe: bool, unit_test_mode: bool = False
+) -> None:
     pl = pv.Plotter()
-    if (len(pt) != 0) and (len(fc) != 0):
-        mesh = pv.PolyData(np.array(pt), faces=np.array(fc))
-        mesh.texture_map_to_plane(inplace=True)
-        pl.add_mesh(mesh, show_edges=True)
+    if len(mesh_data) != 0:
+        for mesh in mesh_data:
+            pl.add_mesh(mesh, show_edges=wireframe)
     else:
         print("Mesh is empty")
     if not unit_test_mode:
@@ -27,383 +26,296 @@ def plot(pt: Sequence[float], fc: Sequence[int], unit_test_mode: bool = False) -
         pl.show()
 
 
-def _add_south_face(face_index: int, faces: Sequence[int]) -> None:
-    faces.extend(
-        [
-            3,
-            20 + face_index,
-            21 + face_index,
-            22 + face_index,
-            3,
-            20 + face_index,
-            23 + face_index,
-            22 + face_index,
-        ]
+def _get_block(block_data: list[str], x: int, y: int, z: int) -> bool:
+    if (
+        15 >= z >= 0
+        and 15 >= y >= 0
+        and 15 >= x >= 0
+        and block_data[y * 256 + z * 16 + x] not in _GlobalReferences.blocks_ignore
+    ):
+        return True
+    return False
+
+
+def generate_point_data(
+    point_mult_factor: int,
+    section_origin: tuple[int, int, int],
+    offset: tuple[int, int, int] = (0, 0, 0),
+) -> np.ndarray[tuple[int, int], np.dtype[np.float32]]:
+    return np.array(
+        (
+            (
+                0.0 * point_mult_factor + section_origin[0] + offset[0],
+                0.0 * point_mult_factor + section_origin[1] + offset[1],
+                0.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                0.0 * point_mult_factor + section_origin[0] + offset[0],
+                1.0 * point_mult_factor + section_origin[1] + offset[1],
+                0.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                1.0 * point_mult_factor + section_origin[0] + offset[0],
+                1.0 * point_mult_factor + section_origin[1] + offset[1],
+                0.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                1.0 * point_mult_factor + section_origin[0] + offset[0],
+                0.0 * point_mult_factor + section_origin[1] + offset[1],
+                0.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                1.0 * point_mult_factor + section_origin[0] + offset[0],
+                0.0 * point_mult_factor + section_origin[1] + offset[1],
+                0.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                1.0 * point_mult_factor + section_origin[0] + offset[0],
+                0.0 * point_mult_factor + section_origin[1] + offset[1],
+                1.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                1.0 * point_mult_factor + section_origin[0] + offset[0],
+                1.0 * point_mult_factor + section_origin[1] + offset[1],
+                1.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                1.0 * point_mult_factor + section_origin[0] + offset[0],
+                1.0 * point_mult_factor + section_origin[1] + offset[1],
+                0.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                1.0 * point_mult_factor + section_origin[0] + offset[0],
+                1.0 * point_mult_factor + section_origin[1] + offset[1],
+                0.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                1.0 * point_mult_factor + section_origin[0] + offset[0],
+                1.0 * point_mult_factor + section_origin[1] + offset[1],
+                1.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                0.0 * point_mult_factor + section_origin[0] + offset[0],
+                1.0 * point_mult_factor + section_origin[1] + offset[1],
+                1.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                0.0 * point_mult_factor + section_origin[0] + offset[0],
+                1.0 * point_mult_factor + section_origin[1] + offset[1],
+                0.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                0.0 * point_mult_factor + section_origin[0] + offset[0],
+                1.0 * point_mult_factor + section_origin[1] + offset[1],
+                0.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                0.0 * point_mult_factor + section_origin[0] + offset[0],
+                1.0 * point_mult_factor + section_origin[1] + offset[1],
+                1.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                0.0 * point_mult_factor + section_origin[0] + offset[0],
+                0.0 * point_mult_factor + section_origin[1] + offset[1],
+                1.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                0.0 * point_mult_factor + section_origin[0] + offset[0],
+                0.0 * point_mult_factor + section_origin[1] + offset[1],
+                0.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                0.0 * point_mult_factor + section_origin[0] + offset[0],
+                0.0 * point_mult_factor + section_origin[1] + offset[1],
+                0.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                0.0 * point_mult_factor + section_origin[0] + offset[0],
+                0.0 * point_mult_factor + section_origin[1] + offset[1],
+                1.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                1.0 * point_mult_factor + section_origin[0] + offset[0],
+                0.0 * point_mult_factor + section_origin[1] + offset[1],
+                1.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                1.0 * point_mult_factor + section_origin[0] + offset[0],
+                0.0 * point_mult_factor + section_origin[1] + offset[1],
+                0.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                0.0 * point_mult_factor + section_origin[0] + offset[0],
+                0.0 * point_mult_factor + section_origin[1] + offset[1],
+                1.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                0.0 * point_mult_factor + section_origin[0] + offset[0],
+                1.0 * point_mult_factor + section_origin[1] + offset[1],
+                1.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                1.0 * point_mult_factor + section_origin[0] + offset[0],
+                1.0 * point_mult_factor + section_origin[1] + offset[1],
+                1.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+            (
+                1.0 * point_mult_factor + section_origin[0] + offset[0],
+                0.0 * point_mult_factor + section_origin[1] + offset[1],
+                1.0 * point_mult_factor + section_origin[2] + offset[2],
+            ),
+        ),
+        dtype=np.float32,
     )
 
 
-def _add_north_face(face_index: int, faces: Sequence[int]) -> None:
-    faces.extend(
-        [
+def _add_south_face(i: int) -> np.ndarray:
+    return np.array(
+        (
             3,
-            0 + face_index,
-            1 + face_index,
-            2 + face_index,
+            20 + i,
+            21 + i,
+            22 + i,
             3,
-            0 + face_index,
-            3 + face_index,
-            2 + face_index,
-        ]
+            20 + i,
+            23 + i,
+            22 + i,
+        ),
+        dtype=np.uint16,
     )
 
 
-def _add_east_face(face_index: int, faces: Sequence[int]) -> None:
-    faces.extend(
-        [
+def _add_north_face(i: int) -> np.ndarray:
+    return np.array(
+        (
             3,
-            4 + face_index,
-            5 + face_index,
-            6 + face_index,
+            0 + i,
+            1 + i,
+            2 + i,
             3,
-            4 + face_index,
-            7 + face_index,
-            6 + face_index,
-        ]
+            0 + i,
+            3 + i,
+            2 + i,
+        ),
+        dtype=np.uint16,
     )
 
 
-def _add_west_face(face_index: int, faces: Sequence[int]) -> None:
-    faces.extend(
-        [
+def _add_east_face(i: int) -> np.ndarray:
+    return np.array(
+        (
             3,
-            12 + face_index,
-            13 + face_index,
-            14 + face_index,
+            4 + i,
+            5 + i,
+            6 + i,
             3,
-            12 + face_index,
-            15 + face_index,
-            14 + face_index,
-        ]
+            4 + i,
+            7 + i,
+            6 + i,
+        ),
+        dtype=np.uint16,
     )
 
 
-def _add_face_above(face_index: int, faces: Sequence[int]) -> None:
-    faces.extend(
-        [
+def _add_west_face(i: int) -> np.ndarray:
+    return np.array(
+        (
             3,
-            8 + face_index,
-            9 + face_index,
-            10 + face_index,
+            12 + i,
+            13 + i,
+            14 + i,
             3,
-            8 + face_index,
-            11 + face_index,
-            10 + face_index,
-        ]
+            12 + i,
+            15 + i,
+            14 + i,
+        ),
+        dtype=np.uint16,
     )
 
 
-def _add_face_below(face_index: int, faces: Sequence[int]) -> None:
-    faces.extend(
-        [
+def _add_face_above(i: int) -> np.ndarray:
+    return np.array(
+        (
             3,
-            16 + face_index,
-            17 + face_index,
-            18 + face_index,
+            8 + i,
+            9 + i,
+            10 + i,
             3,
-            16 + face_index,
-            19 + face_index,
-            18 + face_index,
-        ]
+            8 + i,
+            11 + i,
+            10 + i,
+        ),
+        dtype=np.uint16,
     )
 
 
-def gen_section_mesh(
+def _add_face_below(i: int) -> np.ndarray:
+    return np.array(
+        (
+            3,
+            16 + i,
+            17 + i,
+            18 + i,
+            3,
+            16 + i,
+            19 + i,
+            18 + i,
+        ),
+        dtype=np.uint16,
+    )
+
+
+def generate_subchunk_mesh(
     section_origin: tuple[int, int, int],
     block_data: list[str],
-    points: Sequence[float],
-    faces: Sequence[int],
-) -> None:
-    # Subchunk with one block type
-    if len(set(block_data)) == 1:
-        face_index = 0 if not points else len(points)
-        if block_data[0] not in _GlobalReferences.blocks_ignore:
-            points.extend(
-                [
-                    [
-                        0.0 + section_origin[0],
-                        0.0 + section_origin[1],
-                        0.0 + section_origin[2],
-                    ],
-                    [
-                        0.0 + section_origin[0],
-                        16.0 + section_origin[1],
-                        0.0 + section_origin[2],
-                    ],
-                    [
-                        16.0 + section_origin[0],
-                        16.0 + section_origin[1],
-                        0.0 + section_origin[2],
-                    ],
-                    [
-                        16.0 + section_origin[0],
-                        0.0 + section_origin[1],
-                        0.0 + section_origin[2],
-                    ],
-                    [
-                        16.0 + section_origin[0],
-                        0.0 + section_origin[1],
-                        0.0 + section_origin[2],
-                    ],
-                    [
-                        16.0 + section_origin[0],
-                        0.0 + section_origin[1],
-                        16.0 + section_origin[2],
-                    ],
-                    [
-                        16.0 + section_origin[0],
-                        16.0 + section_origin[1],
-                        16.0 + section_origin[2],
-                    ],
-                    [
-                        16.0 + section_origin[0],
-                        16.0 + section_origin[1],
-                        0.0 + section_origin[2],
-                    ],
-                    [
-                        16.0 + section_origin[0],
-                        16.0 + section_origin[1],
-                        0.0 + section_origin[2],
-                    ],
-                    [
-                        16.0 + section_origin[0],
-                        16.0 + section_origin[1],
-                        16.0 + section_origin[2],
-                    ],
-                    [
-                        0.0 + section_origin[0],
-                        16.0 + section_origin[1],
-                        16.0 + section_origin[2],
-                    ],
-                    [
-                        0.0 + section_origin[0],
-                        16.0 + section_origin[1],
-                        0.0 + section_origin[2],
-                    ],
-                    [
-                        0.0 + section_origin[0],
-                        16.0 + section_origin[1],
-                        0.0 + section_origin[2],
-                    ],
-                    [
-                        0.0 + section_origin[0],
-                        16.0 + section_origin[1],
-                        16.0 + section_origin[2],
-                    ],
-                    [
-                        0.0 + section_origin[0],
-                        0.0 + section_origin[1],
-                        16.0 + section_origin[2],
-                    ],
-                    [
-                        0.0 + section_origin[0],
-                        0.0 + section_origin[1],
-                        0.0 + section_origin[2],
-                    ],
-                    [
-                        0.0 + section_origin[0],
-                        0.0 + section_origin[1],
-                        0.0 + section_origin[2],
-                    ],
-                    [
-                        0.0 + section_origin[0],
-                        0.0 + section_origin[1],
-                        16.0 + section_origin[2],
-                    ],
-                    [
-                        16.0 + section_origin[0],
-                        0.0 + section_origin[1],
-                        16.0 + section_origin[2],
-                    ],
-                    [
-                        16.0 + section_origin[0],
-                        0.0 + section_origin[1],
-                        0.0 + section_origin[2],
-                    ],
-                    [
-                        0.0 + section_origin[0],
-                        0.0 + section_origin[1],
-                        16.0 + section_origin[2],
-                    ],
-                    [
-                        0.0 + section_origin[0],
-                        16.0 + section_origin[1],
-                        16.0 + section_origin[2],
-                    ],
-                    [
-                        16.0 + section_origin[0],
-                        16.0 + section_origin[1],
-                        16.0 + section_origin[2],
-                    ],
-                    [
-                        16.0 + section_origin[0],
-                        0.0 + section_origin[1],
-                        16.0 + section_origin[2],
-                    ],
-                ]
+    single_block_type: bool,
+) -> pv.PolyData | None:
+    fc_array = []
+    pt_array = []
+    if single_block_type:
+        # Checks if block is one that is not ignored
+        if _get_block(block_data, 0, 0, 0):
+            fc_idx = len(pt_array)
+            return pv.PolyData(
+                generate_point_data(16, section_origin),
+                faces=np.hstack(
+                    (
+                        _add_north_face(fc_idx),
+                        _add_east_face(fc_idx),
+                        _add_face_above(fc_idx),
+                        _add_west_face(fc_idx),
+                        _add_face_below(fc_idx),
+                        _add_south_face(fc_idx),
+                    ),
+                    dtype=np.uint16,
+                ),
             )
-            for i in range(0, 21, 4):
-                faces.extend(
-                    [3, i + face_index, i + 1 + face_index, i + 2 + face_index]
-                )
-                faces.extend(
-                    [3, i + face_index, i + 3 + face_index, i + 2 + face_index]
-                )
     else:
         for y, z, x in iter_product(range(0, 16), range(0, 16), range(0, 16)):
-            if block_data[y * 256 + z * 16 + x] not in _GlobalReferences.blocks_ignore:
-                adjacent_face_data = [
-                    _TriangleCulling.is_block_north(block_data, x, y, z),
-                    _TriangleCulling.is_block_east(block_data, x, y, z),
-                    _TriangleCulling.is_block_above(block_data, x, y, z),
-                    _TriangleCulling.is_block_west(block_data, x, y, z),
-                    _TriangleCulling.is_block_below(block_data, x, y, z),
-                    _TriangleCulling.is_block_south(block_data, x, y, z),
-                ]
+            # Checks if block is one that is not ignored
+            if _get_block(block_data, x, y, z):
+                adjacent_face_data = (
+                    _get_block(block_data, x, y, z - 1),
+                    _get_block(block_data, x + 1, y, z),
+                    _get_block(block_data, x, y + 1, z),
+                    _get_block(block_data, x - 1, y, z),
+                    _get_block(block_data, x, y - 1, z),
+                    _get_block(block_data, x, y, z + 1),
+                )
                 if not all(adjacent_face_data):
-                    face_index = 0 if not points else len(points)
-                    points.extend(
-                        [
-                            [
-                                0.0 + section_origin[0] + x,
-                                0.0 + section_origin[1] + y,
-                                0.0 + section_origin[2] + z,
-                            ],
-                            [
-                                0.0 + section_origin[0] + x,
-                                1.0 + section_origin[1] + y,
-                                0.0 + section_origin[2] + z,
-                            ],
-                            [
-                                1.0 + section_origin[0] + x,
-                                1.0 + section_origin[1] + y,
-                                0.0 + section_origin[2] + z,
-                            ],
-                            [
-                                1.0 + section_origin[0] + x,
-                                0.0 + section_origin[1] + y,
-                                0.0 + section_origin[2] + z,
-                            ],
-                            [
-                                1.0 + section_origin[0] + x,
-                                0.0 + section_origin[1] + y,
-                                0.0 + section_origin[2] + z,
-                            ],
-                            [
-                                1.0 + section_origin[0] + x,
-                                0.0 + section_origin[1] + y,
-                                1.0 + section_origin[2] + z,
-                            ],
-                            [
-                                1.0 + section_origin[0] + x,
-                                1.0 + section_origin[1] + y,
-                                1.0 + section_origin[2] + z,
-                            ],
-                            [
-                                1.0 + section_origin[0] + x,
-                                1.0 + section_origin[1] + y,
-                                0.0 + section_origin[2] + z,
-                            ],
-                            [
-                                1.0 + section_origin[0] + x,
-                                1.0 + section_origin[1] + y,
-                                0.0 + section_origin[2] + z,
-                            ],
-                            [
-                                1.0 + section_origin[0] + x,
-                                1.0 + section_origin[1] + y,
-                                1.0 + section_origin[2] + z,
-                            ],
-                            [
-                                0.0 + section_origin[0] + x,
-                                1.0 + section_origin[1] + y,
-                                1.0 + section_origin[2] + z,
-                            ],
-                            [
-                                0.0 + section_origin[0] + x,
-                                1.0 + section_origin[1] + y,
-                                0.0 + section_origin[2] + z,
-                            ],
-                            [
-                                0.0 + section_origin[0] + x,
-                                1.0 + section_origin[1] + y,
-                                0.0 + section_origin[2] + z,
-                            ],
-                            [
-                                0.0 + section_origin[0] + x,
-                                1.0 + section_origin[1] + y,
-                                1.0 + section_origin[2] + z,
-                            ],
-                            [
-                                0.0 + section_origin[0] + x,
-                                0.0 + section_origin[1] + y,
-                                1.0 + section_origin[2] + z,
-                            ],
-                            [
-                                0.0 + section_origin[0] + x,
-                                0.0 + section_origin[1] + y,
-                                0.0 + section_origin[2] + z,
-                            ],
-                            [
-                                0.0 + section_origin[0] + x,
-                                0.0 + section_origin[1] + y,
-                                0.0 + section_origin[2] + z,
-                            ],
-                            [
-                                0.0 + section_origin[0] + x,
-                                0.0 + section_origin[1] + y,
-                                1.0 + section_origin[2] + z,
-                            ],
-                            [
-                                1.0 + section_origin[0] + x,
-                                0.0 + section_origin[1] + y,
-                                1.0 + section_origin[2] + z,
-                            ],
-                            [
-                                1.0 + section_origin[0] + x,
-                                0.0 + section_origin[1] + y,
-                                0.0 + section_origin[2] + z,
-                            ],
-                            [
-                                0.0 + section_origin[0] + x,
-                                0.0 + section_origin[1] + y,
-                                1.0 + section_origin[2] + z,
-                            ],
-                            [
-                                0.0 + section_origin[0] + x,
-                                1.0 + section_origin[1] + y,
-                                1.0 + section_origin[2] + z,
-                            ],
-                            [
-                                1.0 + section_origin[0] + x,
-                                1.0 + section_origin[1] + y,
-                                1.0 + section_origin[2] + z,
-                            ],
-                            [
-                                1.0 + section_origin[0] + x,
-                                0.0 + section_origin[1] + y,
-                                1.0 + section_origin[2] + z,
-                            ],
-                        ]
-                    )
+                    fc_index = len(pt_array)
+                    pt_array.extend(generate_point_data(1, section_origin, (x, y, z)))
                     if not adjacent_face_data[0]:
-                        _add_north_face(face_index, faces)
+                        fc_array.append(_add_north_face(fc_index))
                     if not adjacent_face_data[1]:
-                        _add_east_face(face_index, faces)
+                        fc_array.append(_add_east_face(fc_index))
                     if not adjacent_face_data[2]:
-                        _add_face_above(face_index, faces)
+                        fc_array.append(_add_face_above(fc_index))
                     if not adjacent_face_data[3]:
-                        _add_west_face(face_index, faces)
+                        fc_array.append(_add_west_face(fc_index))
                     if not adjacent_face_data[4]:
-                        _add_face_below(face_index, faces)
+                        fc_array.append(_add_face_below(fc_index))
                     if not adjacent_face_data[5]:
-                        _add_south_face(face_index, faces)
+                        fc_array.append(_add_south_face(fc_index))
+        return pv.PolyData(pt_array, faces=np.hstack(fc_array, dtype=np.uint16))
+    return None
