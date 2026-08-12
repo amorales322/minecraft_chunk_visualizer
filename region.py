@@ -5,15 +5,21 @@ from itertools import product as iter_product
 
 import numpy as np
 
-from Chunk import Chunk
-from NBTParser import (
+from chunk import Chunk
+from nbt_parser import (
     NBTData,
     BYTE_UNSIGNED_DTYPE,
     SHORT_UNSIGNED_DTYPE,
     INT_UNSIGNED_DTYPE,
 )
 
-__all__ = ["Region", "InvalidCompressionTypeError", "FileCorruptionError"]
+__all__ = [
+    "Region",
+    "InvalidCompressionTypeError",
+    "FileCorruptionError",
+    "HeaderMetadata",
+    "ChunkMetadata",
+]
 
 
 class InvalidCompressionTypeError(Exception):
@@ -32,6 +38,7 @@ class HeaderMetadata:
     """
     Class containing the header metadata.
     """
+
     def __init__(
         self,
         data: bytes,
@@ -61,6 +68,7 @@ class ChunkMetadata:
     """
     Class containing the chunk metadata.
     """
+
     def __init__(self):
         self.byte_size = np.zeros(1024, dtype=INT_UNSIGNED_DTYPE)
         self.compression_type = np.zeros(1024, dtype=BYTE_UNSIGNED_DTYPE)
@@ -122,7 +130,7 @@ class Region:
             case _:
                 raise ValueError("Unknown/invalid File Type")
 
-    def get_chunk(self, x_rel: int, z_rel: int) -> Chunk | None:
+    def get_chunk(self, x_rel: int, z_rel: int) -> Chunk:
         """
         Returns a Chunk object containing the modifiable chunk data.
 
@@ -130,8 +138,8 @@ class Region:
         :type x_rel: int
         :param z_rel: Z-coordinate of chunk relative to region origin
         :type z_rel: int
-        :return: 'Chunk' object containing the modifiable chunk data, 'None' if the chunk does not exist.
-        :rtype: Chunk | None
+        :return: 'Chunk' object containing the modifiable chunk data.
+        :rtype: Chunk
         :raise ValueError: If the x or z coordinates are outside the valid range.
         :raise InvalidCompressionTypeError: If the file compression is not a valid compression type or if the file is compressed using a custom compression algorithm (since 24w05a).
         :raise NotImplementedError: If the compression type value is > 128 (.mcc file)
@@ -147,8 +155,8 @@ class Region:
         idx = x_rel * 32 + z_rel
         compression_type = self.chunk_metadata.compression_type[idx]
 
-        if type(self.data[idx]) is None:
-            return None
+        if not self.data[idx]:
+            return Chunk(None)
         match compression_type:
             case 1:
                 decompressed_data = gzip_decompress(self.data[idx])
