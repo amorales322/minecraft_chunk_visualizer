@@ -6,31 +6,33 @@ from mesh import Mesh
 
 
 def plot(
-    mesh_data: list[Mesh], wireframe: bool = False, unit_test_mode: bool = False
+    mesh_data: list[Mesh],
+    *,
+    wireframe: bool = False,
+    window_size: tuple[int, int] = (1920, 1080),
+    camera_position: str = "zx",
 ) -> None:
     """
     Plots the mesh data using the pyvista Plotter class.
 
-    :param mesh_data: List of pyvista PolyData objects to plot
+    :param mesh_data: List of pyvista PolyData objects to plot.
     :type mesh_data: list[pyvista.PolyData]
     :param wireframe: Enable/Disable wireframe.
     :type wireframe: bool
-    :param unit_test_mode: Used for unit testing. Verifies the function works and skips plotting.
-    :type unit_test_mode: bool
+    :param window_size: Window size.
+    :type window_size: tuple[int, int]
+    :param camera_position: Initial camera axis position.
+    :type camera_position: str
     :return: `None`
     :rtype: None
     """
     pl = pv.Plotter()
-    if len(mesh_data) != 0:
+    if mesh_data:
         for mesh in mesh_data:
             if not mesh.is_empty:
                 pl.add_mesh(mesh.mesh_data, show_edges=wireframe)
-
-    else:
-        print("Mesh is empty")
-    if not unit_test_mode:
-        pl.camera_position = "zx"
-        pl.window_size = [1920, 1080]
+        pl.camera_position = camera_position
+        pl.window_size = window_size
         pl.add_axes(
             interactive=True,
             line_width=5,

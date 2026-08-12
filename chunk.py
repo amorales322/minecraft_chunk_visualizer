@@ -9,7 +9,6 @@ from nbt_parser import NBTData
 from coordinate import Coordinate
 from mesh import Mesh
 
-
 __all = ["Chunk"]
 
 
@@ -18,55 +17,50 @@ class Chunk:
     Chunk class containing the chunk NBT data.
     """
 
-    def __init__(self, data: NBTData | None) -> None:
-        if type(data) is NBTData:
-            if data.nbt_data["Status"] == "minecraft:full":
-                self.section_block_counts = {}
-                self.section_palette_lengths = {i: 0 for i in range(-4, 20)}
-                for section in data.nbt_data["sections"]:
-                    if section["Y"] >= -4:
-                        palette = section["block_states"]["palette"]
-                        palette_length = len(palette)
-                        palette_idx_max = len(palette) - 1
-                        self.section_palette_lengths[section["Y"]] = palette_length
-                        if palette_length != 1:
-                            n_elem = len(section["block_states"]["data"])
-                            bit_width = max(palette_idx_max.bit_length(), 4)
-                            buffer = np.zeros(
-                                int(
-                                    (n_elem * 64 - (n_elem * (64 % bit_width)))
-                                    / bit_width
-                                ),
-                                dtype=np.uint16,
-                            )
-                            block_idx = 0
-                            for value in section["block_states"]["data"]:
-                                bin_val = np.binary_repr(value, width=64)
-                                for v in range(64, 64 % bit_width, -bit_width):
-                                    buffer[block_idx] = int(
-                                        bin_val[v - bit_width : v], 2
-                                    )
-                                    if buffer[block_idx] > palette_length - 1:
-                                        print("Error:", buffer[block_idx])
-                                    block_idx += 1
-                            section["block_states"]["data"] = buffer
-                            self.section_block_counts[section["Y"]] = (
-                                self._calculate_block_count_index(
-                                    buffer, dtype=np.uint16
-                                )
-                            )
-                        else:
-                            self.section_block_counts[section["Y"]] = np.array(
-                                [4096], dtype=np.uint16
-                            )
+    def __init__(self, data: NBTData) -> None:
+        if data.nbt_data and data.nbt_data["Status"] == "minecraft:full":
+            self.section_block_counts = {}
+            self.section_palette_lengths = {i: 0 for i in range(-4, 20)}
+            for section in data.nbt_data["sections"]:
+                if section["Y"] >= -4:
+                    subchunk_y = section["Y"]
+                    print(section["block_states"]["palette"])
+                    palette_length = len(section["block_states"]["palette"])
+                    self.section_palette_lengths[subchunk_y] = palette_length
+                    if palette_length > 1:
+                        n_elem = len(section["block_states"]["data"])
+                        elem_bit_width = max((palette_length - 1).bit_length(), 4)
+                        idx = 0
+                        entry_buffer = np.zeros(
+                            int(
+                                (n_elem * 64 - (n_elem * (64 % elem_bit_width)))
+                                / elem_bit_width
+                            ),
+                            dtype=np.uint16,
+                        )
 
-                self.chunk_data = data.nbt_data
-                self.chunk_metadata = data.nbt_structure
-                self.is_empty = False
-            else:
-                self.chunk_data = None
-                self.chunk_metadata = None
-                self.is_empty = True
+                        for elem in section["block_states"]["data"]:
+                            bin_val = np.binary_repr(elem, width=64)
+                            for v in range(64, 64 % elem_bit_width, -elem_bit_width):
+                                entry_buffer[idx] = int(
+                                    bin_val[v - elem_bit_width : v], 2
+                                )
+                                idx += 1
+                        print(section)
+                        section["block_states"]["data"] = entry_buffer
+                        self._set_block_counts(
+                            subchunk_y,
+                            self._calculate_block_count(entry_buffer, dtype=np.uint16),
+                        )
+                    else:
+                        self._set_block_counts(
+                            subchunk_y,
+                            np.array([4096], dtype=np.uint16),
+                        )
+
+            self.chunk_data = data.nbt_data
+            self.chunk_metadata = data.nbt_structure
+            self.is_empty = False
         else:
             self.chunk_data = None
             self.chunk_metadata = None
@@ -85,14 +79,12 @@ class Chunk:
         return section + origin_offset + 4
 
     # For multiple blocks
-    def _calculate_block_count_index(
-        self, data: np.ndarray, dtype=np.int64
-    ) -> np.ndarray:
+    def _calculate_block_count(self, data: np.ndarray, dtype=np.int64) -> np.ndarray:
         numbers, n_occurrences = np.unique(data, return_counts=True)
         return n_occurrences.astype(dtype)
 
     # For single block
-    def _update_block_count_index(
+    def _update_block_count(
         self, section_y: int, data, original_block_idx: int
     ) -> None:
         # Decrement original block
@@ -272,7 +264,7 @@ class Chunk:
             if block_already_present:
                 section_data["data"][block_idx] = palette_index
                 self.section_block_counts[section][palette_index] += 1
-                self._update_block_count_index(section, section_data, original_block)
+                self._update_block_count(section, section_data, original_block)
             else:
                 new_index = self._get_next_palette_index(section)
 
@@ -282,7 +274,7 @@ class Chunk:
                 self._set_block_counts(
                     section, np.append(self.section_block_counts[section], 1)
                 )
-                self._update_block_count_index(section, section_data, original_block)
+                self._update_block_count(section, section_data, original_block)
         else:
             if block.to_NBT_format() != section_data["palette"][0]:
                 # If blocks are not equal

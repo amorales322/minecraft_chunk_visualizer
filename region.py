@@ -182,4 +182,4 @@ class Region:
                         compression_type,
                         "Compression type is not a valid value. File may be corrupted.",
                     )
-        return Chunk(NBTData.generate(decompressed_data))
+        return Chunk(NBTData.read(decompressed_data))

@@ -38,7 +38,7 @@ class NBTData:
         self.nbt_structure = metadata
 
     @staticmethod
-    def generate(byte_data: bytes) -> "NBTData":
+    def read(byte_data: bytes) -> "NBTData":
         """
         Returns generated NBT data deserialized from chunk byte data.
 
