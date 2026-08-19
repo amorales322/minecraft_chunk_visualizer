@@ -18,10 +18,7 @@ class Mesh:
         self.is_empty = False if data else True
 
     @staticmethod
-    def generate_subchunk_mesh(
-        subchunk_origin: Coordinate,
-        data,
-    ) -> "Mesh":
+    def generate_subchunk_mesh(subchunk_origin: Coordinate, data, /) -> "Mesh":
         fc_array = []
         pt_array = []
 

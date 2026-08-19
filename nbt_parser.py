@@ -1,6 +1,7 @@
 from struct import unpack
 from typing import Any
 import numpy as np
+from random import randbytes
 
 __all__ = [
     "NBTData",
@@ -38,7 +39,7 @@ class NBTData:
         self.nbt_structure = metadata
 
     @staticmethod
-    def read(byte_data: bytes) -> "NBTData":
+    def read(byte_data: bytes, /) -> "NBTData":
         """
         Returns generated NBT data deserialized from chunk byte data.
 
@@ -85,6 +86,11 @@ class NBTData:
                     raise UnknownTagError(tag)
 
         return NBTData(NBT_data, NBT_metadata)
+
+    @staticmethod
+    def serialize(data) -> bytearray:
+        print(randbytes(512))
+        return bytearray(randbytes(512))
 
 
 def _extract_tag_name(byte_data: bytes, i: int) -> tuple[str | None, int]:

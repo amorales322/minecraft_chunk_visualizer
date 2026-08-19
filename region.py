@@ -2,6 +2,8 @@ from zlib import decompress as zlib_decompress
 from gzip import decompress as gzip_decompress
 from lz4.frame import decompress as lz4_decompress
 from itertools import product as iter_product
+from datetime import datetime, timezone
+from math import floor, ceil
 
 import numpy as np
 
@@ -104,7 +106,7 @@ class Region:
                 )
 
     @staticmethod
-    def from_region_file(filepath: str) -> "Region":
+    def from_region_file(filepath: str, /) -> "Region":
         """
         Returns a Region object containing the region file data.
 
@@ -130,33 +132,63 @@ class Region:
             case _:
                 raise ValueError("Unknown/invalid File Type")
 
-    def get_chunk(self, x_rel: int, z_rel: int) -> Chunk:
+    def write_chunk(self, data: Chunk, x: int, z: int, /) -> None:
+        serialized_data = NBTData.serialize(data)
+        bytesize = len(serialized_data)
+        sector_count = ceil(bytesize / 4096)
+        init_sector_size = np.astype(
+            self.header_metadata.data_sector_size[x * 32 + z], np.uint64
+        )
+        init_sector_offset = self.header_metadata.data_byte_offset[x * 32 + z]
+
+        self.header_metadata.timestamps[(x * 32) + z] = floor(
+            datetime.now(timezone.utc).timestamp()
+        )
+        self.chunk_metadata.byte_size[x * 32 + z] = bytesize
+        self.header_metadata.data_sector_size[x * 32 + z] = sector_count
+
+        ## Update sector offsets
+        if sector_count > init_sector_size:
+            diff = sector_count - init_sector_size
+            self.header_metadata.data_byte_offset[
+                self.header_metadata.data_byte_offset > init_sector_offset
+            ] += diff * 4096
+        elif sector_count < init_sector_size:
+            diff = init_sector_size - sector_count
+            self.header_metadata.data_byte_offset[
+                self.header_metadata.data_byte_offset > init_sector_offset
+            ] -= diff * 4096
+
+        serialized_data += b"\0" * (4096 - (len(serialized_data) % 4096))
+        self.data[x * 32 + z] = serialized_data
+
+    def get_chunk(self, x: int, z: int, /) -> Chunk | None:
         """
         Returns a Chunk object containing the modifiable chunk data.
 
-        :param x_rel: X-coordinate of chunk relative to region origin
-        :type x_rel: int
-        :param z_rel: Z-coordinate of chunk relative to region origin
-        :type z_rel: int
-        :return: 'Chunk' object containing the modifiable chunk data.
-        :rtype: Chunk
+        :param x: X-coordinate of chunk relative to region origin -> [0, 31].
+        :type x: int
+        :param z: Z-coordinate of chunk relative to region origin -> [0, 31].
+        :type z: int
+        :return: `Chunk` object containing the modifiable chunk data, or `None` if the chunk has not been generated.
+        :rtype: Chunk | None
         :raise ValueError: If the x or z coordinates are outside the valid range.
         :raise InvalidCompressionTypeError: If the file compression is not a valid compression type or if the file is compressed using a custom compression algorithm (since 24w05a).
         :raise NotImplementedError: If the compression type value is > 128 (.mcc file)
         """
-        if not 0 <= x_rel <= 31:
+        if not 0 <= x <= 31:
             raise ValueError(
-                f"{x_rel} is outside the valid range. Chunk x-coordinate must be between 0 and 31."
+                f"{x} is outside the valid range. Chunk x-coordinate must be between 0 and 31."
             )
-        if not 0 <= z_rel <= 31:
+        if not 0 <= z <= 31:
             raise ValueError(
-                f"{z_rel} is outside the valid range. Chunk z-coordinate must be between 0 and 31."
+                f"{z} is outside the valid range. Chunk z-coordinate must be between 0 and 31."
             )
-        idx = x_rel * 32 + z_rel
+        idx = x * 32 + z
         compression_type = self.chunk_metadata.compression_type[idx]
 
         if not self.data[idx]:
-            return Chunk(None)
+            return None
         match compression_type:
             case 1:
                 decompressed_data = gzip_decompress(self.data[idx])

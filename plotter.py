@@ -7,6 +7,7 @@ from mesh import Mesh
 
 def plot(
     mesh_data: list[Mesh],
+    /,
     *,
     wireframe: bool = False,
     window_size: tuple[int, int] = (1920, 1080),

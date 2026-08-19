@@ -17,14 +17,13 @@ class Chunk:
     Chunk class containing the chunk NBT data.
     """
 
-    def __init__(self, data: NBTData) -> None:
+    def __init__(self, data: NBTData, /) -> None:
         if data.nbt_data and data.nbt_data["Status"] == "minecraft:full":
             self.section_block_counts = {}
             self.section_palette_lengths = {i: 0 for i in range(-4, 20)}
             for section in data.nbt_data["sections"]:
                 if section["Y"] >= -4:
                     subchunk_y = section["Y"]
-                    print(section["block_states"]["palette"])
                     palette_length = len(section["block_states"]["palette"])
                     self.section_palette_lengths[subchunk_y] = palette_length
                     if palette_length > 1:
@@ -46,16 +45,15 @@ class Chunk:
                                     bin_val[v - elem_bit_width : v], 2
                                 )
                                 idx += 1
-                        print(section)
                         section["block_states"]["data"] = entry_buffer
                         self._set_block_counts(
-                            subchunk_y,
                             self._calculate_block_count(entry_buffer, dtype=np.uint16),
+                            subchunk_y,
                         )
                     else:
                         self._set_block_counts(
-                            subchunk_y,
                             np.array([4096], dtype=np.uint16),
+                            subchunk_y,
                         )
 
             self.chunk_data = data.nbt_data
@@ -66,56 +64,62 @@ class Chunk:
             self.chunk_metadata = None
             self.is_empty = True
 
-    def _get_section_index(self, y_coord: int) -> int:
+    def _get_section_index(self, y_coord: int, /) -> int:
         origin_offset = -4 - self.chunk_data["sections"][0]["Y"]
         return ((y_coord + 64) // 16 - 4) + origin_offset + 4
 
-    def _section_idx_to_section(self, section_idx: int) -> int:
+    def _section_idx_to_section(self, section_idx: int, /) -> int:
         origin_offset = -4 - self.chunk_data["sections"][0]["Y"]
         return section_idx - origin_offset - 4
 
-    def _section_to_section_index(self, section: int) -> int:
+    def _section_to_section_index(self, section: int, /) -> int:
         origin_offset = -4 - self.chunk_data["sections"][0]["Y"]
         return section + origin_offset + 4
 
     # For multiple blocks
-    def _calculate_block_count(self, data: np.ndarray, dtype=np.int64) -> np.ndarray:
+    def _calculate_block_count(self, data: np.ndarray, /, dtype=np.int64) -> np.ndarray:
         numbers, n_occurrences = np.unique(data, return_counts=True)
         return n_occurrences.astype(dtype)
 
     # For single block
     def _update_block_count(
-        self, section_y: int, data, original_block_idx: int
+        self,
+        data: dict[str, dict[str, str] | np.ndarray],
+        /,
+        idx: int,
+        section_y: int,
     ) -> None:
         # Decrement original block
-        self.section_block_counts[section_y][original_block_idx] -= 1
+        self.section_block_counts[section_y][idx] -= 1
 
         # Remove original block if zero
-        if self.section_block_counts[section_y][original_block_idx] == 0:
-            data["data"][data["data"] > original_block_idx] -= 1
-            data["palette"].pop(original_block_idx)
+        if self.section_block_counts[section_y][idx] == 0:
+            data["data"][data["data"] > idx] -= 1
+            data["palette"].pop(idx)
             self.section_block_counts[section_y] = np.delete(
-                self.section_block_counts[section_y], original_block_idx
+                self.section_block_counts[section_y], idx
             )
 
-    def _set_block_counts(self, section_y: int, data: np.ndarray) -> None:
+    def _set_block_counts(self, data: np.ndarray, section_y: int, /) -> None:
         self.section_block_counts[section_y] = data
 
-    def _get_block_counts(self, section_y: int) -> np.ndarray:
+    def _get_block_counts(self, section_y: int, /) -> np.ndarray:
         return self.section_block_counts[section_y]
 
-    def _get_next_palette_index(self, section_y: int) -> int:
+    def _get_next_palette_index(self, section_y: int, /) -> int:
         index = self.section_palette_lengths[section_y]
         self.section_palette_lengths[section_y] += 1
         return index
 
-    def _get_section_data(self, section_y: int):
+    def _get_section_data(self, section_y: int, /):
         return self.chunk_data["sections"][self._section_to_section_index(section_y)]
 
-    def _set_section_data(self, section_y: int, data) -> None:
+    def _set_section_data(
+        self, data: dict[str, dict[str, str] | np.ndarray], section_y: int, /
+    ) -> None:
         self.chunk_data["sections"][self._section_to_section_index(section_y)] = data
 
-    def _contains_multiple_blocks(self, section_y: int) -> bool:
+    def _contains_multiple_blocks(self, section_y: int, /) -> bool:
         return (
             "data"
             in self.chunk_data["sections"][self._section_to_section_index(section_y)][
@@ -123,7 +127,9 @@ class Chunk:
             ]
         )
 
-    def _block_already_present(self, palette_data, block: Block) -> tuple[bool, int]:
+    def _block_already_present(
+        self, palette_data: dict[str, dict[str, str] | str], block: Block, /
+    ) -> tuple[bool, int]:
         exists, index = (False, 0)
         for i, palette_item in enumerate(palette_data):
             if block.to_NBT_format() == palette_item:
@@ -157,7 +163,7 @@ class Chunk:
                 return Mesh(pv.merge(meshes))
         return Mesh(None)
 
-    def export_as_JSON(self, path: str) -> None:
+    def export_as_JSON(self, path: str, /) -> None:
         """
         Exports the chunk data as JSON.
 
@@ -187,7 +193,7 @@ class Chunk:
                     f'Chunk data has been exported as JSON and saved to "{file_path}".'
                 )
 
-    def get_block(self, coordinate: Coordinate) -> Block:
+    def get_block(self, coordinate: Coordinate, /) -> Block:
         """
         Get block at specified position relative to the chunk origin.
 
@@ -224,7 +230,7 @@ class Chunk:
             block["Name"], (block["Properties"] if "Properties" in block else {})
         )
 
-    def set_block(self, block: Block, coordinate: Coordinate) -> None:
+    def set_block(self, block: Block, coordinate: Coordinate, /) -> None:
         """
         Sets the block at the specified position relative to the chunk origin.
 
@@ -264,7 +270,11 @@ class Chunk:
             if block_already_present:
                 section_data["data"][block_idx] = palette_index
                 self.section_block_counts[section][palette_index] += 1
-                self._update_block_count(section, section_data, original_block)
+                self._update_block_count(
+                    section_data,
+                    original_block,
+                    section,
+                )
             else:
                 new_index = self._get_next_palette_index(section)
 
@@ -272,9 +282,14 @@ class Chunk:
                 section_data["data"][block_idx] = new_index
                 section_data["palette"].append(block.to_NBT_format())
                 self._set_block_counts(
-                    section, np.append(self.section_block_counts[section], 1)
+                    np.append(self.section_block_counts[section], 1),
+                    section,
                 )
-                self._update_block_count(section, section_data, original_block)
+                self._update_block_count(
+                    section_data,
+                    original_block,
+                    section,
+                )
         else:
             if block.to_NBT_format() != section_data["palette"][0]:
                 # If blocks are not equal
