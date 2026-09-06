@@ -34,8 +34,5 @@ def plot(
                 pl.add_mesh(mesh.mesh_data, show_edges=wireframe)
         pl.camera_position = camera_position
         pl.window_size = window_size
-        pl.add_axes(
-            interactive=True,
-            line_width=5,
-        )
+        pl.add_axes(interactive=True, line_width=5)
         pl.show()
