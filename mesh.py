@@ -77,7 +77,10 @@ class Mesh:
                 )
         else:
             # Checks if block is one that is not ignored
-            if Mesh._block_at(data["palette"], [0], Coordinate(0, 0, 0)):
+            if (
+                data["palette"][data["data"][subchunk_origin.get_block_index()]]["Name"]
+                not in program_references.blocks_ignore
+            ):
                 fc_idx = len(pt_array)
                 return Mesh(
                     pv.PolyData(
