@@ -145,11 +145,6 @@ class Mesh:
                 (
                     1.0 * mult_factor + origin.x + offset.x,
                     0.0 * mult_factor + origin.y + offset.y,
-                    0.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    1.0 * mult_factor + origin.x + offset.x,
-                    0.0 * mult_factor + origin.y + offset.y,
                     1.0 * mult_factor + origin.z + offset.z,
                 ),
                 (
@@ -158,87 +153,12 @@ class Mesh:
                     1.0 * mult_factor + origin.z + offset.z,
                 ),
                 (
-                    1.0 * mult_factor + origin.x + offset.x,
-                    1.0 * mult_factor + origin.y + offset.y,
-                    0.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    1.0 * mult_factor + origin.x + offset.x,
-                    1.0 * mult_factor + origin.y + offset.y,
-                    0.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    1.0 * mult_factor + origin.x + offset.x,
-                    1.0 * mult_factor + origin.y + offset.y,
-                    1.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
                     0.0 * mult_factor + origin.x + offset.x,
                     1.0 * mult_factor + origin.y + offset.y,
                     1.0 * mult_factor + origin.z + offset.z,
                 ),
                 (
                     0.0 * mult_factor + origin.x + offset.x,
-                    1.0 * mult_factor + origin.y + offset.y,
-                    0.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    0.0 * mult_factor + origin.x + offset.x,
-                    1.0 * mult_factor + origin.y + offset.y,
-                    0.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    0.0 * mult_factor + origin.x + offset.x,
-                    1.0 * mult_factor + origin.y + offset.y,
-                    1.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    0.0 * mult_factor + origin.x + offset.x,
-                    0.0 * mult_factor + origin.y + offset.y,
-                    1.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    0.0 * mult_factor + origin.x + offset.x,
-                    0.0 * mult_factor + origin.y + offset.y,
-                    0.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    0.0 * mult_factor + origin.x + offset.x,
-                    0.0 * mult_factor + origin.y + offset.y,
-                    0.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    0.0 * mult_factor + origin.x + offset.x,
-                    0.0 * mult_factor + origin.y + offset.y,
-                    1.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    1.0 * mult_factor + origin.x + offset.x,
-                    0.0 * mult_factor + origin.y + offset.y,
-                    1.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    1.0 * mult_factor + origin.x + offset.x,
-                    0.0 * mult_factor + origin.y + offset.y,
-                    0.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    0.0 * mult_factor + origin.x + offset.x,
-                    0.0 * mult_factor + origin.y + offset.y,
-                    1.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    0.0 * mult_factor + origin.x + offset.x,
-                    1.0 * mult_factor + origin.y + offset.y,
-                    1.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    1.0 * mult_factor + origin.x + offset.x,
-                    1.0 * mult_factor + origin.y + offset.y,
-                    1.0 * mult_factor + origin.z + offset.z,
-                ),
-                (
-                    1.0 * mult_factor + origin.x + offset.x,
                     0.0 * mult_factor + origin.y + offset.y,
                     1.0 * mult_factor + origin.z + offset.z,
                 ),
@@ -249,7 +169,7 @@ class Mesh:
     @staticmethod
     def _add_south_face(i: int) -> np.ndarray:
         return np.array(
-            (3, 20 + i, 21 + i, 22 + i, 3, 20 + i, 23 + i, 22 + i), dtype=np.uint32
+            (3, 7 + i, 6 + i, 5 + i, 3, 7 + i, 4 + i, 5 + i), dtype=np.uint32
         )
 
     @staticmethod
@@ -261,23 +181,23 @@ class Mesh:
     @staticmethod
     def _add_east_face(i: int) -> np.ndarray:
         return np.array(
-            (3, 4 + i, 5 + i, 6 + i, 3, 4 + i, 7 + i, 6 + i), dtype=np.uint32
+            (3, 3 + i, 4 + i, 5 + i, 3, 3 + i, 2 + i, 5 + i), dtype=np.uint32
         )
 
     @staticmethod
     def _add_west_face(i: int) -> np.ndarray:
         return np.array(
-            (3, 12 + i, 13 + i, 14 + i, 3, 12 + i, 15 + i, 14 + i), dtype=np.uint32
+            (3, 1 + i, 6 + i, 7 + i, 3, 1 + i, 0 + i, 7 + i), dtype=np.uint32
         )
 
     @staticmethod
     def _add_face_above(i: int) -> np.ndarray:
         return np.array(
-            (3, 8 + i, 9 + i, 10 + i, 3, 8 + i, 11 + i, 10 + i), dtype=np.uint32
+            (3, 2 + i, 5 + i, 6 + i, 3, 2 + i, 1 + i, 6 + i), dtype=np.uint32
         )
 
     @staticmethod
     def _add_face_below(i: int) -> np.ndarray:
         return np.array(
-            (3, 16 + i, 17 + i, 18 + i, 3, 16 + i, 19 + i, 18 + i), dtype=np.uint32
+            (3, 0 + i, 7 + i, 4 + i, 3, 0 + i, 3 + i, 4 + i), dtype=np.uint32
         )

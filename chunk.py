@@ -21,68 +21,74 @@ class Chunk:
     non-empty Chunk instances. This can be checked using the 'is_empty' attribute.
     """
 
-    def __init__(self, data: NBTData, /) -> None:
-        if type(data) is not NBTData:
-            raise ValueError("NBT Data has not been provided.")
-
-        # Used to calculate and index of block counts for each subchunk.
-        # Checking for the substring 'full' makes it version independent, as this has changed throughout game versions.
-        if "full" in data.nbt_data["Status"]:
-            self.block_count_idx = {
-                i: np.zeros(1, dtype=np.uint16) for i in range(-4, 20)
-            }
-            self.section_palette_len = {i: 0 for i in range(-4, 20)}
-
-            # Iterate over each section
-            for section in data.nbt_data["sections"]:
-                # Anything below y = -4 and above y = 19 are outside the normal world height limits, so these subchunks
-                # will be ignored.
-                if section["Y"] >= -4:
-                    palette_length = len(section["block_states"]["palette"])
-                    self.section_palette_len[section["Y"]] = palette_length
-
-                    if palette_length > 1:
-                        n_elem = len(section["block_states"]["data"])
-                        elem_bit_width = max((palette_length - 1).bit_length(), 4)
-                        block_buf_size = int(
-                            (n_elem * 64 - (n_elem * (64 % elem_bit_width)))
-                            / elem_bit_width
-                        )
-
-                        # Create an entry buffer to fit all blocks inside the array
-                        entry_buffer = np.zeros(block_buf_size, dtype=np.uint16)
-
-                        # Iterate over every number and extract the palette indices
-                        block_idx = 0
-                        for elem in section["block_states"]["data"]:
-                            bin_val = np.binary_repr(elem, width=64)
-                            for v in range(64, 64 % elem_bit_width, -elem_bit_width):
-                                entry_buffer[block_idx] = int(
-                                    bin_val[v - elem_bit_width : v], 2
-                                )
-                                block_idx += 1
-
-                        # Save to subchunk data
-                        section["block_states"]["data"] = entry_buffer
-
-                        # Calculate block counts
-                        self._set_block_counts(
-                            self._calculate_block_counts(entry_buffer),
-                            section["Y"],
-                        )
-                    else:
-                        self._set_block_counts(
-                            np.array([4096], dtype=np.uint16),
-                            section["Y"],
-                        )
-
-            self.chunk_data = data.nbt_data
-            self.chunk_metadata = data.nbt_structure
-            self.is_empty = False
-        else:
+    def __init__(self, data: NBTData | None, /) -> None:
+        if data is None:
             self.chunk_data = None
             self.chunk_metadata = None
             self.is_empty = True
+        elif type(data) is not NBTData:
+            raise ValueError("NBT Data has not been provided.")
+        else:
+            # Used to calculate and index of block counts for each subchunk.
+            # Checking for the substring 'full' makes it version independent, as this has changed throughout game versions.
+            if "full" in data.nbt_data["Status"]:
+                self.block_count_idx = {
+                    i: np.zeros(1, dtype=np.uint16) for i in range(-4, 20)
+                }
+                self.section_palette_len = {i: 0 for i in range(-4, 20)}
+
+                # Iterate over each section
+                for section in data.nbt_data["sections"]:
+                    # Anything below y = -4 and above y = 19 are outside the normal world height limits, so these subchunks
+                    # will be ignored.
+                    if section["Y"] >= -4:
+                        palette_length = len(section["block_states"]["palette"])
+                        self.section_palette_len[section["Y"]] = palette_length
+
+                        if palette_length > 1:
+                            n_elem = len(section["block_states"]["data"])
+                            elem_bit_width = max((palette_length - 1).bit_length(), 4)
+                            block_buf_size = int(
+                                (n_elem * 64 - (n_elem * (64 % elem_bit_width)))
+                                / elem_bit_width
+                            )
+
+                            # Create an entry buffer to fit all blocks inside the array
+                            entry_buffer = np.zeros(block_buf_size, dtype=np.uint16)
+
+                            # Iterate over every number and extract the palette indices
+                            block_idx = 0
+                            for elem in section["block_states"]["data"]:
+                                bin_val = np.binary_repr(elem, width=64)
+                                for v in range(
+                                    64, 64 % elem_bit_width, -elem_bit_width
+                                ):
+                                    entry_buffer[block_idx] = int(
+                                        bin_val[v - elem_bit_width : v], 2
+                                    )
+                                    block_idx += 1
+
+                            # Save to subchunk data
+                            section["block_states"]["data"] = entry_buffer
+
+                            # Calculate block counts
+                            self._set_block_counts(
+                                self._calculate_block_counts(entry_buffer),
+                                section["Y"],
+                            )
+                        else:
+                            self._set_block_counts(
+                                np.array([4096], dtype=np.uint16),
+                                section["Y"],
+                            )
+
+                self.chunk_data = data.nbt_data
+                self.chunk_metadata = data.nbt_structure
+                self.is_empty = False
+            else:
+                self.chunk_data = None
+                self.chunk_metadata = None
+                self.is_empty = True
 
     @staticmethod
     def get_section_y(y: int) -> int:
@@ -300,7 +306,7 @@ class Chunk:
         section_data = self._get_section_data(section)["block_states"]
 
         if self._contains_multiple_blocks(section):
-            orignal_block_idx = section_data["data"][block_idx]
+            original_block_idx = section_data["data"][block_idx]
 
             # Check if the block is already present inside the chunk
             block_exists, palette_idx = self._block_already_present(
@@ -309,14 +315,14 @@ class Chunk:
 
             if block_exists:
                 section_data["data"][block_idx] = palette_idx
-                self._update_block_count(orignal_block_idx, palette_idx, section)
+                self._update_block_count(original_block_idx, palette_idx, section)
             else:
                 new_idx = self._get_next_palette_idx(section)
 
                 # Append new block
                 section_data["data"][block_idx] = new_idx
                 section_data["palette"].append(block.to_NBT_format())
-                self._update_block_count(orignal_block_idx, new_idx, section)
+                self._update_block_count(original_block_idx, new_idx, section)
         else:
             if block.to_NBT_format() != section_data["palette"][0]:
                 # If blocks are not equal

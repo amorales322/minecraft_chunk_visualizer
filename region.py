@@ -143,7 +143,7 @@ class Region:
             case _:
                 raise ValueError("Unknown/invalid File Type")
 
-    def get_chunk(self, x: int, z: int, /) -> Chunk | None:
+    def get_chunk(self, x: int, z: int, /) -> Chunk:
         """
         Returns a Chunk object containing the modifiable chunk data.
 
@@ -151,7 +151,7 @@ class Region:
         :type x: int
         :param z: Z-coordinate of chunk relative to region origin -> [0, 31].
         :type z: int
-        :return: `Chunk` object containing the modifiable chunk data, or `None` if the chunk has not been generated.
+        :return: `Chunk` object containing the modifiable chunk data, or an empty Chunk object if the chunk does not exist.
         :rtype: Chunk | None
         :raise ValueError: If the x or z coordinates are outside the valid range.
         :raise InvalidCompressionTypeError: If the file compression is not a valid compression type or if the file is compressed using a custom compression algorithm (since 24w05a).
@@ -169,7 +169,7 @@ class Region:
         compression_type = self.chunk_metadata.compression_type[idx]
 
         if not self.data[idx]:
-            return None
+            return Chunk(None)
         match compression_type:
             case 1:
                 decompressed_data: bytes = gzip_decompress(self.data[idx])
