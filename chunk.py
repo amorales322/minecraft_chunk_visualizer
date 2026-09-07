@@ -239,42 +239,42 @@ class Chunk:
                     f'Chunk data has been exported as JSON and saved to "{file_path}".'
                 )
 
-    # def get_block(self, coordinate: Coordinate, /) -> Block:
-    #     """
-    #     Get block at specified position relative to the chunk origin.
-    #
-    #     :param coordinate: Coordinate object defining the coordinate of the block to get relative to the chunk origin -> ([0, 15], [-64, 320], [0, 15]).
-    #     :type coordinate: Coordinate
-    #     :return: Block at specified position.
-    #     :rtype: Block
-    #     :raise ValueError: Raised if the X, Y, or Z coordinates are outside the valid range.
-    #     """
-    #
-    #     if not 0 <= coordinate.x <= 15:
-    #         raise ValueError(
-    #             f"{coordinate.x} is outside the valid range. X coordinate must be between 0 and 15."
-    #         )
-    #     if not -64 <= coordinate.y <= 320:
-    #         raise ValueError(
-    #             f"{coordinate.y} is outside the valid range. Y coordinate must be between -64 and 320."
-    #         )
-    #     if not 0 <= coordinate.z <= 15:
-    #         raise ValueError(
-    #             f"{coordinate.z} is outside the valid range. Z coordinate must be between 0 and 15."
-    #         )
-    #
-    #     section = self._get_section_idx(y=coordinate.y)
-    #     block_block_idx = coordinate.get_block_idx()
-    #     block_id = self.chunk_data["sections"][section]["block_states"]["data"][
-    #         block_block_idx
-    #     ]
-    #     block = self.chunk_data["sections"][section]["block_states"]["palette"][
-    #         block_id
-    #     ]
-    #
-    #     return Block(
-    #         block["Name"], (block["Properties"] if "Properties" in block else {})
-    #     )
+    def get_block(self, coordinate: Coordinate, /) -> Block:
+        """
+        Get block at specified position relative to the chunk origin.
+
+        :param coordinate: Coordinate object defining the coordinate of the block to get relative to the chunk origin -> ([0, 15], [-64, 320], [0, 15]).
+        :type coordinate: Coordinate
+        :return: Block at specified position.
+        :rtype: Block
+        :raise ValueError: Raised if the X, Y, or Z coordinates are outside the valid range.
+        """
+
+        if not 0 <= coordinate.x <= 15:
+            raise ValueError(
+                f"{coordinate.x} is outside the valid range. X coordinate must be between 0 and 15."
+            )
+        if not -64 <= coordinate.y <= 320:
+            raise ValueError(
+                f"{coordinate.y} is outside the valid range. Y coordinate must be between -64 and 320."
+            )
+        if not 0 <= coordinate.z <= 15:
+            raise ValueError(
+                f"{coordinate.z} is outside the valid range. Z coordinate must be between 0 and 15."
+            )
+
+        section = self._get_section_idx(y=coordinate.y)
+        block_block_idx = coordinate.get_block_index()
+        block_id = self.chunk_data["sections"][section]["block_states"]["data"][
+            block_block_idx
+        ]
+        block = self.chunk_data["sections"][section]["block_states"]["palette"][
+            block_id
+        ]
+
+        return Block(
+            block["Name"], (block["Properties"] if "Properties" in block else {})
+        )
 
     def set_block(self, block: Block, coordinate: Coordinate, /) -> None:
         """
